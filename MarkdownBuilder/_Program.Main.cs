@@ -1,7 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Collections.Frozen;
-using System.Web;
-using System.Xml;
 
 internal partial class Program
 {
@@ -24,6 +21,8 @@ internal partial class Program
         if (!File.Exists(fileTarPath)) throw new FileNotFoundException(fileTarPath);
         if (!File.Exists(otherTarPath)) throw new FileNotFoundException(otherTarPath);
 
+        var paths = new ConcurrentBag<string>();
+
         await ExtractZipAndTarsAsync(
             archiveZipPath,
             mainTarPath,
@@ -35,8 +34,7 @@ internal partial class Program
             tempFileDir,
             tempOtherDir
         );
-
-        var paths = new ConcurrentBag<string>();
+        
         await ExtractBrotliArchivesAsync(
             tempMainDir,
             tempFileDir,
@@ -44,11 +42,18 @@ internal partial class Program
             paths
         );
 
-        var linkedWikiStructure = await LinkWikiStructureAsync(tempArchiveDir, paths);
-
+        var (linkedWikiStructure, titleDictionary) = await LinkWikiStructureAsync(tempArchiveDir, paths);
+        
         var thbWikiNamespace = linkedWikiStructure.Keys.First(ns => ns.Id == 4);
         var thbWikiEmptyPage = linkedWikiStructure[thbWikiNamespace].First(title => title.TitleModel.Id == 3288);
-        
+
+        var topPages = ParseTopPage(thbWikiEmptyPage.HtmlFilePath);
+
+        foreach (var page in topPages)
+        {
+            Console.WriteLine(page);
+        }
+
         Console.WriteLine("Finish");
     }
 }

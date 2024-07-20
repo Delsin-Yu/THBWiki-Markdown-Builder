@@ -4,9 +4,9 @@ using System.Web;
 
 internal partial class Program
 {
-    private record struct LinkedTitleModel(TitleModel TitleModel, string HtmlFilePath);
+    private record LinkedTitleModel(TitleModel TitleModel, string HtmlFilePath);
     
-    private static async Task<FrozenDictionary<NamespaceModel, LinkedTitleModel[]>> LinkWikiStructureAsync(string tempArchiveDir, ConcurrentBag<string> paths)
+    private static async Task<(FrozenDictionary<NamespaceModel, LinkedTitleModel[]>, FrozenDictionary<string, LinkedTitleModel>)> LinkWikiStructureAsync(string tempArchiveDir, ConcurrentBag<string> paths)
     {
         var namespaces = new List<NamespaceModel>();
         var titles = new List<TitleModel>();
@@ -66,6 +66,9 @@ internal partial class Program
             }
         }
 
-        return linkedWikiStructure.ToFrozenDictionary(x => x.Key, x => x.Value.Select(y => new LinkedTitleModel(y.Item1, y.Item2)).ToArray());
+        var bakedWikiDictionary = linkedWikiStructure.ToFrozenDictionary(x => x.Key, x => x.Value.Select(y => new LinkedTitleModel(y.Item1, y.Item2)).ToArray());
+        var bakedTitleDictionary = bakedWikiDictionary.Values.SelectMany(x => x).ToFrozenDictionary(x => x.TitleModel.Title, x => x);
+
+        return (bakedWikiDictionary, bakedTitleDictionary);
     }
 }
