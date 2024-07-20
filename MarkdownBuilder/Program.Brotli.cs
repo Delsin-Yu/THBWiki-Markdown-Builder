@@ -3,7 +3,7 @@ using System.IO.Compression;
 
 internal partial class Program
 {
-    private static async Task ExtractBrotliArchives(
+    private static async Task ExtractBrotliArchivesAsync(
         string tempMainDir,
         string tempFileDir,
         string tempOtherDir,

@@ -3,7 +3,7 @@ using System.IO.Compression;
 
 internal partial class Program
 {
-    private static async Task ExtractZipAndTars(
+    private static async Task ExtractZipAndTarsAsync(
         string archiveZipPath,
         string mainTarPath,
         string fileTarPath,
