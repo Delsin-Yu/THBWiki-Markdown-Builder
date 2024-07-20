@@ -16,7 +16,12 @@ internal partial class Program
     {
         Console.WriteLine("Start extracting resources...");
 
-        if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        if (Directory.Exists(tempDir))
+        {
+            Console.WriteLine("Deleting existing resources...");
+            Directory.Delete(tempDir, true);
+            Console.WriteLine("Finish deleting existing resources");
+        }
 
         Directory.CreateDirectory(tempArchiveDir);
         Directory.CreateDirectory(tempMainDir);
