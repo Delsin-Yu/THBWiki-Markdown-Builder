@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Text;
 
 internal partial class Program
 {
@@ -13,7 +14,8 @@ internal partial class Program
             out var tempArchiveDir,
             out var tempMainDir,
             out var tempFileDir,
-            out var tempOtherDir
+            out var tempOtherDir,
+            out var markdownDir
         );
 
         if (!File.Exists(archiveZipPath)) throw new FileNotFoundException(archiveZipPath);
@@ -23,6 +25,10 @@ internal partial class Program
 
         var paths = new ConcurrentBag<string>();
 
+        
+        
+        // ↓↓↓↓↓↓↓↓ Comment the code bellow after the first run ↓↓↓↓↓↓↓↓
+        
         await ExtractZipAndTarsAsync(
             archiveZipPath,
             mainTarPath,
@@ -42,6 +48,18 @@ internal partial class Program
             paths
         );
 
+        // ↑↑↑↑↑↑↑↑ Comment the code above after the first run ↑↑↑↑↑↑↑↑
+        
+        
+        
+        // ↓↓↓↓↓↓↓↓ Uncomment the code bellow after the first run ↓↓↓↓↓↓↓↓
+        
+        // Directory.GetFiles(tempDir, "*.html", SearchOption.AllDirectories).AsParallel().ForAll(paths.Add);
+        
+        // ↑↑↑↑↑↑↑↑ Uncomment the code above after the first run ↑↑↑↑↑↑↑↑
+
+        
+        
         var (linkedWikiStructure, titleDictionary) = await LinkWikiStructureAsync(tempArchiveDir, paths);
         
         var thbWikiNamespace = linkedWikiStructure.Keys.First(ns => ns.Id == 4);
@@ -49,10 +67,8 @@ internal partial class Program
 
         var topPages = ParseTopPage(thbWikiEmptyPage.HtmlFilePath);
 
-        foreach (var page in topPages)
-        {
-            Console.WriteLine(page);
-        }
+        await BuildPagesAsync(topPages, titleDictionary, markdownDir);
+
 
         Console.WriteLine("Finish");
     }

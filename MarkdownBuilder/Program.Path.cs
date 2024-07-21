@@ -9,7 +9,8 @@ internal partial class Program
         out string tempArchiveDir,
         out string tempMainDir,
         out string tempFileDir,
-        out string tempOtherDir)
+        out string tempOtherDir,
+        out string markdownDir)
     {
         var root = Path.GetFullPath("./../../../../");
         var sourceDir = Path.Combine(root, "THBWikiSources");
@@ -17,7 +18,7 @@ internal partial class Program
         mainTarPath = Path.Combine(sourceDir, "main.tar");
         fileTarPath = Path.Combine(sourceDir, "file.tar");
         otherTarPath = Path.Combine(sourceDir, "other.tar");
-        var markdownDir = Path.Combine(root, "THBWikiMarkdown");
+        markdownDir = Path.Combine(root, "THBWikiMarkdown");
         tempDir = Path.Combine(markdownDir, "Temp");
         tempArchiveDir = Path.Combine(tempDir, "archive");
         tempMainDir = Path.Combine(tempDir, "main");

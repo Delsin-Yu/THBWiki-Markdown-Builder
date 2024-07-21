@@ -58,7 +58,7 @@ internal partial class Program
                 if (!string.IsNullOrWhiteSpace(titleModel.Redirect)) continue;
                 if (!fileEntry.TryGetValue(titleModel.Key, out var filePath))
                 {
-                    Console.WriteLine($"Unable to find: {namespaceModel.DisplayName} : {titleModel.Key}");
+                    // Console.WriteLine($"Unable to find: {namespaceModel.DisplayName} : {titleModel.Key}");
                     continue;
                 }
 

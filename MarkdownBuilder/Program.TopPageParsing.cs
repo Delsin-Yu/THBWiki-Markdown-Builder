@@ -4,7 +4,7 @@ using HtmlAgilityPack;
 
 internal partial class Program
 {
-    private record HyperLinkNode(string DisplayName, string? Link)
+    private record HyperLinkNode(string DisplayName, string? Link, string? RawLink)
     {
         public List<HyperLinkNode> Children { get; } = [];
 
@@ -29,9 +29,8 @@ internal partial class Program
 
     private static HyperLinkNode[] ParseTopPage(string pagePath)
     {
-        using var fileStream = File.OpenRead(pagePath);
         var document = new HtmlDocument();
-        document.Load(fileStream);
+        document.Load(pagePath);
         HtmlNode[] nodes =
         [
             document.GetElementbyId("p-常用"),
@@ -53,7 +52,7 @@ internal partial class Program
 
     private static HyperLinkNode CreateTree(string name, HtmlNode ul)
     {
-        var root = new HyperLinkNode(name, null);
+        var root = new HyperLinkNode(name, null, null);
         ReadUl(ul, root);
         return root;
 
@@ -62,14 +61,16 @@ internal partial class Program
             foreach (var li in node.ChildNodes.Where(node => node.Name == "li"))
             {
                 var liFirstChild = li.FirstChild;
-                var hrefLink = liFirstChild.Attributes.FirstOrDefault(attribute => attribute.Name == "href")?.Value;
+                var rawHrefLink = liFirstChild.GetAttributeValue("href", null);
+                var hrefLink = rawHrefLink;
 
                 if (hrefLink is not null && hrefLink.StartsWith('/'))
                     hrefLink = HttpUtility.UrlDecode(hrefLink)[1..];
 
                 var child = new HyperLinkNode(
                     liFirstChild.InnerText,
-                    hrefLink
+                    hrefLink,
+                    rawHrefLink
                 );
                 parent.Children.Add(child);
 
