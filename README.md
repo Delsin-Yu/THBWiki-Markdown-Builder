@@ -1,2 +1,38 @@
 # THBWiki-Markdown-Builder
-Work in progress builder that aims to create Markdown files directory from origin THBWiki static sources
+
+一个实验性质的 Markdown 格式的 THBWiki 构建器，通过获取并且解析 THBWiki 静态站的源文件来生成可导航的 MarkDown 格式文件。
+
+## 需求
+
+1. 克隆此仓库
+2. 安装 `.Net 8 SDK`
+3. 获取 THBWiki 静态站的相应资源
+4. 将获取的 `archive.zip`, `file.tar`, `main.tar`, 以及 `other.tar` 解压到 `仓库目录/THBWikiSources` 文件夹
+5. 构建并且运行程序，程序会进行相应的解压缩以及转换工作
+6. 在程序完成运行后，会在 `仓库目录/THBWikiMarkdown` 文件夹中生成 `readme.md` 索引文件，以及包含了所有 `readme.md` 直接或间接依赖的 `sources` 文件夹
+
+## 缺陷
+
+1. 目前的链接逻辑直接使用 `href` 中，进行http地址解码后的， `/` 开头的文本来作为查询字符串，进入由所有 `词条列表` 的 `title` 属性构建的字典进行查询。此做法目前会导致大量解析失败，并导致部分生成的 markdown 文件产生丢链现象
+2. 由于静态站以及 Markdown 的缺陷，部分功能天然的无法达成
+
+## 使用须知
+
+此仓库接受任何形式的对软件功能进行优化/Bug修复类的的Issue和PR，但是不接受技术支持类型的Issue或PR，请见谅。
+
+此仓库使用 `MIT` 协议，这代表：
+
+- 你可以：
+  - 商业使用此仓库中的代码
+  - 再发行此仓库中的代码
+  - 对此仓库中的代码进行修改
+  - 将此仓库以非公开的形式使用
+
+- 需要满足的条件：
+  - 在使用此仓库的场合下，包含完整的 `MIT` 协议文件（位于仓库的根目录）
+
+- 此许可证的限制：
+  - 在任何情况下，此仓库中代码所有者不会对因软件或软件的使用或其他交易而产生或与之相关的任何索赔、损害赔偿或其他责任承担责任
+  - 在任何情况下，此仓库中代码所有者没有义务为软件，或因使用软件而造成的损害提供任何形式的保修服务
+
+需要注意的是，由此程序生成的，Markdown 格式的 THBWiki 文档集，需使用符合 [**知识共享(Creative Commons) 署名-非商业性使用-相同方式共享 3.0 协议**](https://creativecommons.org/licenses/by-sa/3.0/deed.zh-hans) 二次发布。
