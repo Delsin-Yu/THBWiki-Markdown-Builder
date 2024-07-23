@@ -24,7 +24,7 @@ internal partial class Program
     
     private static async Task BuildPagesAsync(
         HyperLinkNode[] topPages,
-        FrozenDictionary<string, LinkedTitleModel> titleModelLookup,
+        FrozenDictionary<string, TitleModelReference> titleModelLookup,
         string markdownDir)
     {
         var indexBuilder = new StringBuilder("# THBWiki - Markdown\n\n");
@@ -99,7 +99,7 @@ internal partial class Program
     }
 
     private partial record LookupInfo(
-        FrozenDictionary<string, LinkedTitleModel> TitleDictionary,
+        FrozenDictionary<string, TitleModelReference> TitleDictionary,
         string MainPageLink,
         string FileDirectory)
     {
@@ -153,7 +153,7 @@ internal partial class Program
                 return true;
             }
             decoded = decoded[1..];
-            if (!TitleDictionary.TryGetValue(decoded, out var linkedTitleModel))
+            if (!TitleDictionary.TryGetValue(decoded, out var titleModelReference))
             {
                 _linkErrorLog.Add($"{decoded}, {rawHref}");
                 link = null;
@@ -162,18 +162,20 @@ internal partial class Program
 
             decoded = GetReplaceFileNameRegex().Replace(decoded, "-");
 
-            var valueTitleModel = linkedTitleModel.TitleModel;
-            if (valueTitleModel.Id == 1)
+            var linkedTitleModel = titleModelReference.LinkedTitleModel;
+            var titleModel = linkedTitleModel.TitleModel;
+            if (titleModel.Id == 1)
             {
                 link = MainPageLink;
                 return true;
             }
 
             var path = isRoot ? $"./sources/{decoded}.md" : $"./{decoded}.md";
+            if (titleModelReference.ReferenceTitle != null) path += $"#{titleModelReference.ReferenceTitle}";
 
-            if (_createdPages.TryAdd(valueTitleModel, 0))
+            if (_createdPages.TryAdd(titleModel, 0))
             {
-                _ = CreatePageAsync(decoded, linkedTitleModel, valueTitleModel);
+                _ = CreatePageAsync(decoded, linkedTitleModel, titleModel);
             }
 
             link = path;

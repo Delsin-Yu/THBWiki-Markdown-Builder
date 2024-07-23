@@ -1,4 +1,8 @@
-﻿using System.Collections.Concurrent;
+﻿// ↓↓↓↓↓↓↓↓ Comment the code bellow after the first run ↓↓↓↓↓↓↓↓
+// #define FIRST_RUN
+// ↑↑↑↑↑↑↑↑ Comment the code above after the first run ↑↑↑↑↑↑↑↑
+
+using System.Collections.Concurrent;
 
 internal partial class Program
 {
@@ -24,10 +28,8 @@ internal partial class Program
 
         var paths = new ConcurrentBag<string>();
 
-        
-        
-        // ↓↓↓↓↓↓↓↓ Comment the code bellow after the first run ↓↓↓↓↓↓↓↓
-        
+
+#if FIRST_RUN
         await ExtractZipAndTarsAsync(
             archiveZipPath,
             mainTarPath,
@@ -39,35 +41,27 @@ internal partial class Program
             tempFileDir,
             tempOtherDir
         );
-        
+
         await ExtractBrotliArchivesAsync(
             tempMainDir,
             tempFileDir,
             tempOtherDir,
             paths
         );
+#endif
 
-        // ↑↑↑↑↑↑↑↑ Comment the code above after the first run ↑↑↑↑↑↑↑↑
-        
-        
-        
-        // ↓↓↓↓↓↓↓↓ Uncomment the code bellow after the first run ↓↓↓↓↓↓↓↓
-        
-        // Directory.GetFiles(tempDir, "*.html", SearchOption.AllDirectories).AsParallel().ForAll(paths.Add);
-        
-        // ↑↑↑↑↑↑↑↑ Uncomment the code above after the first run ↑↑↑↑↑↑↑↑
 
-        
-        
-        var (linkedWikiStructure, titleDictionary) = await LinkWikiStructureAsync(tempArchiveDir, paths);
-        
-        var thbWikiNamespace = linkedWikiStructure.Keys.First(ns => ns.Id == 4);
-        var thbWikiEmptyPage = linkedWikiStructure[thbWikiNamespace].First(title => title.TitleModel.Id == 3288);
+#if !FIRST_RUN
+        Directory.GetFiles(tempDir, "*.html", SearchOption.AllDirectories).AsParallel().ForAll(paths.Add);
+#endif
 
-        var topPages = ParseTopPage(thbWikiEmptyPage.HtmlFilePath);
+
+        var titleDictionary = await LinkWikiStructureAsync(tempArchiveDir, paths);
+        var thbWikiEmptyPage = titleDictionary.Values.First(title => title.LinkedTitleModel.TitleModel.Id == 3288);
+
+        var topPages = ParseTopPage(thbWikiEmptyPage.LinkedTitleModel.HtmlFilePath);
 
         await BuildPagesAsync(topPages, titleDictionary, markdownDir);
-
 
         Console.WriteLine("Finish");
     }

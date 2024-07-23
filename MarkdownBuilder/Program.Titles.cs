@@ -15,7 +15,11 @@ internal partial class Program
         [JsonPropertyName("redirect")] public required string Redirect { get; init; }
         [JsonPropertyName("extract")] public required string Extract { get; init; }
         
-        public override string ToString() => $"{Id:00}:{Title}";
+        public override string ToString()
+        {
+            if (string.IsNullOrWhiteSpace(Redirect)) return $"{Namespace:000}/{Id:000000}: {Title}";
+            return $"{Namespace:000}/{Id:000000}: {Title}, Redirect: {Redirect}";
+        }
     }
 
     
