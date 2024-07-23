@@ -135,7 +135,7 @@ internal partial class Program
         {
             foreach (var log in _linkErrorLog)
             {
-                Console.WriteLine($"Unable to find {log}");
+                Console.WriteLine($"Unable to find the reference document: {log}");
             }
         }
 
@@ -251,7 +251,7 @@ internal partial class Program
             } while (li is not null && li.Name == "li");
         }
         
-        private async Task ParseChildrenAsync(HtmlNode divNode, StreamWriter writer, int level, Type type = Type.Normal)
+        private async Task ParseChildrenAsync(HtmlNode divNode, StreamWriter writer, int level, Type type = Type.Normal, bool disableLinkBreak = false)
         {
             var count = 0;
             foreach (var childNode in divNode.ChildNodes)
@@ -269,12 +269,14 @@ internal partial class Program
                     case "form":
                     case "button":
                     case "select":
+                    case "map":
                         break;    
                     case "iframe":
                     case "img":
                     case "audio":
                     case "ruby":
                     case "svg":
+                    case "blockquote":
                         await writer.WriteLineAsync(childNode.OuterHtml);
                         break;
                     case "div":
@@ -294,6 +296,7 @@ internal partial class Program
                         await writer.WriteAsync(childNode.InnerText);
                         break;
                     case "br":
+                        if(disableLinkBreak) break;
                         await writer.WriteLineAsync("  ");
                         break;
                     case "a":
@@ -359,7 +362,7 @@ internal partial class Program
                         break;
                     case "big":
                         await writer.WriteAsync("<big>");
-                        await ParseChildrenAsync(childNode, writer, level);
+                        await ParseChildrenAsync(childNode, writer, level, disableLinkBreak: true);
                         await writer.WriteAsync("</big>");
                         break;
                     case "small":
@@ -384,23 +387,23 @@ internal partial class Program
                     case "h2":
                         // 不渲染 “注释”
                         if(childNode.FirstChild.Id == ".E6.B3.A8.E9.87.8A") continue;
-                        await writer.WriteAsync("## ");
+                        await writer.WriteAsync("\n## ");
                         await ParseChildrenAsync(childNode, writer, level);
                         break;
                     case "h3":
-                        await writer.WriteAsync("### ");
+                        await writer.WriteAsync("\n### ");
                         await ParseChildrenAsync(childNode, writer, level);
                         break;
                     case "h4":
-                        await writer.WriteAsync("#### ");
+                        await writer.WriteAsync("\n#### ");
                         await ParseChildrenAsync(childNode, writer, level);
                         break;
                     case "h5":
-                        await writer.WriteAsync("##### ");
+                        await writer.WriteAsync("\n##### ");
                         await ParseChildrenAsync(childNode, writer, level);
                         break;
                     case "h6":
-                        await writer.WriteAsync("###### ");
+                        await writer.WriteAsync("\n###### ");
                         await ParseChildrenAsync(childNode, writer, level);
                         break;
                     case "ul":
@@ -412,7 +415,7 @@ internal partial class Program
                         await writer.WriteLineAsync();
                         break;
                     case "li":
-                        await writer.WriteAsync(new string(' ', (level - 1) * 2));
+                        await writer.WriteAsync(new string(' ', Math.Max(level - 1, 0) * 2));
                         if(type is Type.OrderedList)
                         {
                             await writer.WriteAsync($"{++count} ");

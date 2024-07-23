@@ -64,5 +64,7 @@ internal partial class Program
         await BuildPagesAsync(topPages, titleDictionary, markdownDir);
 
         Console.WriteLine("Finish");
+
+        Console.ReadLine();
     }
 }
