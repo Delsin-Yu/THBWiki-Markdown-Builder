@@ -1,14 +1,14 @@
-﻿// ↓↓↓↓↓↓↓↓ Comment the code bellow after the first run ↓↓↓↓↓↓↓↓
-// #define FIRST_RUN
-// ↑↑↑↑↑↑↑↑ Comment the code above after the first run ↑↑↑↑↑↑↑↑
-
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 
 internal partial class Program
 {
-    public static async Task Main()
+    public static async Task Main(string[] args)
     {
+        if (!ParseArgs(args, out var firstRun, out var outputDirArg, out var onlyPage))
+            return;
+
         CreatePaths(
+            outputDirArg,
             out var archiveZipPath,
             out var mainTarPath,
             out var fileTarPath,
@@ -26,45 +26,68 @@ internal partial class Program
         if (!File.Exists(fileTarPath)) throw new FileNotFoundException(fileTarPath);
         if (!File.Exists(otherTarPath)) throw new FileNotFoundException(otherTarPath);
 
+        Directory.CreateDirectory(markdownDir);
+
+        var buildLog = new BuildLog();
         var paths = new ConcurrentBag<string>();
 
+        var htmlAlreadyExtracted = Directory.Exists(tempDir) &&
+                                   Directory.EnumerateFiles(tempDir, "*.html", SearchOption.AllDirectories).Any();
+        var shouldExtract = firstRun || !htmlAlreadyExtracted;
 
-#if FIRST_RUN
-        await ExtractZipAndTarsAsync(
-            archiveZipPath,
-            mainTarPath,
-            fileTarPath,
-            otherTarPath,
-            tempDir,
-            tempArchiveDir,
-            tempMainDir,
-            tempFileDir,
-            tempOtherDir
-        );
+        if (shouldExtract)
+        {
+            if (!firstRun)
+                Console.WriteLine("Extract cache missing HTML; running extract as if --first-run was set.");
 
-        await ExtractBrotliArchivesAsync(
-            tempMainDir,
-            tempFileDir,
-            tempOtherDir,
-            paths
-        );
-#endif
+            await ExtractZipAndTarsAsync(
+                archiveZipPath,
+                mainTarPath,
+                fileTarPath,
+                otherTarPath,
+                tempDir,
+                tempArchiveDir,
+                tempMainDir,
+                tempFileDir,
+                tempOtherDir
+            );
 
+            await ExtractBrotliArchivesAsync(
+                tempMainDir,
+                tempFileDir,
+                tempOtherDir,
+                paths
+            );
+        }
+        else
+        {
+            Directory.GetFiles(tempDir, "*.html", SearchOption.AllDirectories).AsParallel().ForAll(paths.Add);
+        }
 
-#if !FIRST_RUN
-        Directory.GetFiles(tempDir, "*.html", SearchOption.AllDirectories).AsParallel().ForAll(paths.Add);
-#endif
+        Console.WriteLine($"Markdown output: {markdownDir}");
+        Console.WriteLine($"Extract cache: {tempDir}");
 
+        var titleDictionary = await LinkWikiStructureAsync(tempArchiveDir, paths, buildLog);
 
-        var titleDictionary = await LinkWikiStructureAsync(tempArchiveDir, paths);
-        var thbWikiEmptyPage = titleDictionary.Values.First(title => title.LinkedTitleModel.TitleModel.Id == 3288);
+        if (!string.IsNullOrWhiteSpace(onlyPage))
+        {
+            await BuildSinglePageAsync(onlyPage, titleDictionary, markdownDir, buildLog);
+        }
+        else
+        {
+            var thbWikiEmptyPage = titleDictionary.Values.First(title => title.LinkedTitleModel.TitleModel.Id == 3288);
+            var topPageHtml = thbWikiEmptyPage.LinkedTitleModel.HtmlFilePath
+                              ?? throw new FileNotFoundException("Missing HTML for THBWiki navigation page (id 3288).");
 
-        var topPages = ParseTopPage(thbWikiEmptyPage.LinkedTitleModel.HtmlFilePath);
+            var topPages = ParseTopPage(topPageHtml);
+            await BuildPagesAsync(topPages, titleDictionary, markdownDir, buildLog);
+        }
 
-        await BuildPagesAsync(topPages, titleDictionary, markdownDir);
+        var logPath = Path.Combine(markdownDir, "build-logs.log");
+        await buildLog.WriteToFileAsync(logPath);
+        buildLog.PrintToConsole();
 
+        Console.WriteLine($"Build log written to: {logPath}");
         Console.WriteLine("Finish");
-
-        Console.ReadLine();
     }
 }

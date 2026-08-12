@@ -4,13 +4,14 @@ using System.Web;
 
 internal partial class Program
 {
-    private record LinkedTitleModel(TitleModel TitleModel, string HtmlFilePath);
+    private record LinkedTitleModel(TitleModel TitleModel, string? HtmlFilePath);
 
     private record struct TitleModelReference(LinkedTitleModel LinkedTitleModel, string? ReferenceTitle);
-    
+
     private static async Task<FrozenDictionary<string, TitleModelReference>> LinkWikiStructureAsync(
         string tempArchiveDir,
-        ConcurrentBag<string> htmlPaths)
+        ConcurrentBag<string> htmlPaths,
+        BuildLog buildLog)
     {
         var titles = new List<TitleModel>();
 
@@ -44,11 +45,13 @@ internal partial class Program
                 continue;
             }
 
-            if (!titleHtmlFileDictionary.TryGetValue(titleModel.Namespace, out var filePathDictionary) || 
-                !filePathDictionary.TryGetValue(titleModel.Key, out var filePath))
+            string? filePath = null;
+            if (!titleHtmlFileDictionary.TryGetValue(titleModel.Namespace, out var filePathDictionary) ||
+                !filePathDictionary.TryGetValue(titleModel.Key, out filePath))
             {
-                Console.WriteLine($"Unable to find html source file for title: {titleModel}");
-                continue;
+                buildLog.AddMissingHtml(titleModel.ToString());
+                // Still register the title so links resolve; page content will be a stub from titles.json.
+                filePath = null;
             }
 
             titleDictionary.Add(
@@ -73,18 +76,87 @@ internal partial class Program
                 redirect = redirectSplit[0];
                 redirectReference = redirectSplit[1];
             }
-            if (!titleDictionary.TryGetValue(redirect, out var redirectTarget))
+
+            if (!TryResolveTitle(titleDictionary, redirect, out var redirectTarget))
             {
-                Console.WriteLine($"Unable to find redirect target for title: {titleModel}");
+                buildLog.AddMissingRedirectTarget(titleModel.ToString());
                 continue;
             }
 
             titleDictionary.Add(
                 titleModel.Title,
-                redirectTarget with { ReferenceTitle = redirectReference }
+                redirectTarget with { ReferenceTitle = redirectReference ?? redirectTarget.ReferenceTitle }
             );
         }
 
         return titleDictionary.ToFrozenDictionary();
+    }
+
+    private static bool TryResolveTitle(
+        IReadOnlyDictionary<string, TitleModelReference> titleDictionary,
+        string rawTitle,
+        out TitleModelReference reference)
+    {
+        foreach (var candidate in EnumerateTitleLookupCandidates(rawTitle))
+        {
+            if (titleDictionary.TryGetValue(candidate, out reference))
+                return true;
+        }
+
+        reference = default;
+        return false;
+    }
+
+    private static IEnumerable<string> EnumerateTitleLookupCandidates(string rawTitle)
+    {
+        if (string.IsNullOrEmpty(rawTitle))
+            yield break;
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var slashVariant in ExpandSlashVariants(rawTitle))
+        {
+            foreach (var candidate in ExpandParenVariants(slashVariant.Replace(' ', '_')))
+            {
+                if (seen.Add(candidate))
+                    yield return candidate;
+            }
+
+            // Some titles may literally contain spaces (rare in this dump, but cheap to try).
+            foreach (var candidate in ExpandParenVariants(slashVariant.Replace('_', ' ')))
+            {
+                if (seen.Add(candidate))
+                    yield return candidate;
+            }
+
+            if (seen.Add(slashVariant))
+                yield return slashVariant;
+        }
+    }
+
+    private static IEnumerable<string> ExpandSlashVariants(string title)
+    {
+        yield return title;
+
+        // MediaWiki sometimes percent-encodes fullwidth slash U+FF0F as path segment.
+        var toAscii = title.Replace('／', '/').Replace('＼', '\\');
+        if (!string.Equals(toAscii, title, StringComparison.Ordinal))
+            yield return toAscii;
+
+        var toFullwidth = title.Replace('/', '／');
+        if (!string.Equals(toFullwidth, title, StringComparison.Ordinal))
+            yield return toFullwidth;
+    }
+
+    private static IEnumerable<string> ExpandParenVariants(string title)
+    {
+        yield return title;
+
+        var toFullwidth = title.Replace('(', '（').Replace(')', '）');
+        if (!string.Equals(toFullwidth, title, StringComparison.Ordinal))
+            yield return toFullwidth;
+
+        var toAscii = title.Replace('（', '(').Replace('）', ')');
+        if (!string.Equals(toAscii, title, StringComparison.Ordinal))
+            yield return toAscii;
     }
 }

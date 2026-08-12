@@ -13,9 +13,19 @@
 
 ## 缺陷
 
-1. 存在无法找到对应 `html` 文件的 `词条`
-2. 目前的链接逻辑直接使用 `href` 中，进行http地址解码后的， `/` 开头的文本来作为查询字符串，进入由所有 `词条列表` 的 `title` 属性构建的字典进行查询。此做法目前会导致大量解析失败，并导致部分生成的 markdown 文件产生丢链现象
+1. 静态站源中缺少 HTML 的词条会生成仅含 `titles.json` 摘要的 stub 页；仍有少量词条在 `titles.json` 中不存在（红链），会保留为 `(未找到链接)` 并写入 `build-logs.log`
+2. 社团作品列表、对话气泡等结构受 Markdown 表现力限制，目前无法优雅还原
 3. 由于静态站以及 Markdown 的缺陷，部分功能天然的无法达成
+
+## 运行
+
+```bash
+dotnet run --project MarkdownBuilder -c Release -- --first-run --output %TEMP%\THBWikiMarkdown
+```
+
+- `--first-run`：解压 `THBWikiSources` 并解压 brotli（产物缓存在 `THBWikiMarkdown/Temp`）
+- `--output`：Markdown 输出目录（默认 `%TEMP%\THBWikiMarkdown`）
+- 构建结束后在输出目录生成 `build-logs.log`
 
 ## 使用须知
 
